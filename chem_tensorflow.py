@@ -21,7 +21,8 @@ class ChemModel(object):
             'patience': 25,
             'learning_rate': 0.001,
             'clamp_gradient_norm': 1.0,
-            'out_layer_dropout_keep_prob': 1.0,
+            'out_layer_dropout_keep_prob': 0.1,
+            # 'out_layer_dropout_keep_prob': 1.0,
 
             'hidden_size': 100,
             'num_timesteps': 4,
@@ -151,11 +152,20 @@ class ChemModel(object):
                 computed_values = self.gated_regression(self.ops['final_node_representations'],
                                                         self.weights['regression_gate_task%i' % task_id],
                                                         self.weights['regression_transform_task%i' % task_id])
+                # with tf.Session() as my_sess:
+                #     print("此batch得到的结果有" + str(computed_values.shape) + "个，分别是:\n" + my_sess.run(computed_values) + "\n")
+                #     print("原始的结果有" + str(self.placeholders['target_values'][internal_id,:].shape) + "个，分别是:\n" + my_sess.run(self.placeholders['target_values'][internal_id,:]))
+                #     correct = 0
+                #     for i in range(computed_values.shape):
+                #         if (computed_values[i] > 0 and self.placeholders['target_values'][internal_id,:][i] > 0) or (computed_values[i] < 0 and self.placeholders['target_values'][internal_id,:][i] < 0):
+                #             correct = correct + 1
+                #     print("此batch正确预测的个数：" + str(correct))
                 diff = computed_values - self.placeholders['target_values'][internal_id,:]
                 task_target_mask = self.placeholders['target_mask'][internal_id,:]
                 task_target_num = tf.reduce_sum(task_target_mask) + SMALL_NUMBER
                 diff = diff * task_target_mask  # Mask out unused values
                 self.ops['accuracy_task%i' % task_id] = tf.reduce_sum(tf.abs(diff)) / task_target_num
+                self.ops['predict_task%i' % task_id] = computed_values
                 task_loss = tf.reduce_sum(0.5 * tf.square(diff)) / task_target_num
                 # Normalise loss to account for fewer task-specific examples in batch:
                 task_loss = task_loss * (1.0 / (self.params['task_sample_ratios'].get(task_id) or 1.0))
@@ -205,6 +215,7 @@ class ChemModel(object):
         loss = 0
         accuracies = []
         accuracy_ops = [self.ops['accuracy_task%i' % task_id] for task_id in self.params['task_ids']]
+        predict_ops = [self.ops['predict_task%i' % task_id] for task_id in self.params['task_ids']]
         start_time = time.time()
         processed_graphs = 0
         batch_iterator = ThreadedIterator(self.make_minibatch_iterator(data, is_training), max_queue_size=5)
@@ -213,14 +224,19 @@ class ChemModel(object):
             processed_graphs += num_graphs
             if is_training:
                 batch_data[self.placeholders['out_layer_dropout_keep_prob']] = self.params['out_layer_dropout_keep_prob']
-                fetch_list = [self.ops['loss'], accuracy_ops, self.ops['train_step']]
+                fetch_list = [self.ops['loss'], accuracy_ops, predict_ops, self.ops['train_step']]
             else:
                 batch_data[self.placeholders['out_layer_dropout_keep_prob']] = 1.0
-                fetch_list = [self.ops['loss'], accuracy_ops]
+                fetch_list = [self.ops['loss'], accuracy_ops, predict_ops]
             result = self.sess.run(fetch_list, feed_dict=batch_data)
-            (batch_loss, batch_accuracies) = (result[0], result[1])
+            (batch_loss, batch_accuracies, batch_predict) = (result[0], result[1], result[2])
+            origin_target = batch_data[self.placeholders['target_values']]
+            print(origin_target)
+            print(batch_predict)
             loss += batch_loss * num_graphs
             accuracies.append(np.array(batch_accuracies) * num_graphs)
+
+
 
             print("Running %s, batch %i (has %i graphs). Loss so far: %.4f" % (epoch_name,
                                                                                step,

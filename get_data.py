@@ -4,18 +4,18 @@ import glob
 import json
 import numpy as np
 
-if not os.path.exists('data'):
-    os.mkdir('data')
-    print('made directory ./data/')
+if not os.path.exists('../data'):
+    os.mkdir('../data')
+    print('made directory ../data/')
 
-download_path = os.path.join('data', 'dsgdb9nsd.xyz.tar.bz2')
+download_path = os.path.join('../data', 'dsgdb9nsd.xyz.tar.bz2')
 if not os.path.exists(download_path):
     print('downloading data to %s ...' % download_path)
     source = 'https://ndownloader.figshare.com/files/3195389'
     os.system('wget -O %s %s' % (download_path, source))
     print('finished downloading')
 
-unzip_path = os.path.join('data', 'qm9_raw')
+unzip_path = os.path.join('../data', 'qm9_raw')
 if not os.path.exists(unzip_path):
     print('extracting data to %s ...' % unzip_path)
     os.mkdir(unzip_path)

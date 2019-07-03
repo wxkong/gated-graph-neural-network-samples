@@ -138,6 +138,7 @@ class DenseGGNNChemModel(ChemModel):
             chosen_bucket_idx = np.argmax(bucket_sizes > max([v for e in d['graph']
                                                                 for v in [e[0], e[2]]]))
             chosen_bucket_size = bucket_sizes[chosen_bucket_idx]
+            print(chosen_bucket_size)
             n_active_nodes = len(d["node_features"])
             bucketed[chosen_bucket_idx].append({
                 'adj_mat': graph_to_adj_mat(d['graph'], chosen_bucket_size, self.num_edge_types, self.params['tie_fwd_bkwd']),

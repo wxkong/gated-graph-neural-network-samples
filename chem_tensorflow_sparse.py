@@ -54,7 +54,8 @@ class SparseGGNNChemModel(ChemModel):
 
             'graph_rnn_cell': 'GRU',  # GRU, CudnnCompatibleGRUCell, or RNN
             'graph_rnn_activation': 'tanh',  # tanh, ReLU
-            'graph_state_dropout_keep_prob': 1.,
+            'graph_state_dropout_keep_prob': 0.1,
+            # 'graph_state_dropout_keep_prob': 1.,
             'task_sample_ratios': {},
             'edge_weight_dropout_keep_prob': .8
         })
